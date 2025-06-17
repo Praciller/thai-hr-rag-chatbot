@@ -4,8 +4,10 @@ pydantic<2
 python-dotenv
 langchain
 langchain-google-genai
-langchain_community
-chromadb
 unstructured
 pypdf
 streamlit
+# --- แก้ไขสำหรับ ChromaDB และ SQLite ---
+chromadb
+langchain-chroma
+pysqlite3-binary

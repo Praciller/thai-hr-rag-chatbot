@@ -1,9 +1,22 @@
+# --- Magic patch for SQLite on Streamlit Cloud ---
+# This must be the very first import in your app
+try:
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+    print("✅ Successfully patched sqlite3")
+except ImportError:
+    print("⚠️ pysqlite3 not found, using default sqlite3. This may fail on Streamlit Cloud.")
+# --------------------------------------------------
+
 import streamlit as st
 import os
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_community.vectorstores import Chroma
+# vvv  นี่คือบรรทัดที่แก้ไข  vvv
+from langchain_chroma import Chroma
+# ^^^  นี่คือบรรทัดที่แก้ไข  ^^^
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
@@ -24,17 +37,14 @@ def setup_vector_database():
     """
     if not os.path.exists(DB_PATH):
         st.write("ยังไม่มีฐานข้อมูล Vector DB, กำลังสร้างขึ้นใหม่...")
-        # 1. โหลดเอกสาร
         loader = DirectoryLoader(DATA_PATH, glob="*.txt")
         documents = loader.load()
-        # 2. แบ่งเอกสาร
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         texts = text_splitter.split_documents(documents)
-        # 3. สร้าง Embeddings และจัดเก็บ
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         vector_store = Chroma.from_documents(
-            documents=texts, 
-            embedding=embeddings, 
+            documents=texts,
+            embedding=embeddings,
             persist_directory=DB_PATH
         )
         st.write("สร้างฐานข้อมูล Vector DB สำเร็จ!")
@@ -46,16 +56,11 @@ def load_rag_chain():
     """
     โหลด RAG Chain ทั้งหมด (ทำครั้งเดียวและ cache ไว้)
     """
-    # ตรวจสอบและสร้าง DB ก่อน
     setup_vector_database()
-
-    # 1. โหลด LLM
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash-latest", temperature=0)
-    # 2. โหลด Vector Store
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     vector_store = Chroma(persist_directory=DB_PATH, embedding_function=embeddings)
     retriever = vector_store.as_retriever()
-    # 3. สร้าง Prompt
     template = """
     คุณคือผู้ช่วย AI ของบริษัท AI สยาม จำกัด มีหน้าที่ตอบคำถามเกี่ยวกับนโยบายภายในบริษัทเท่านั้น
     โปรดใช้ข้อมูลจาก 'บริบท' ที่ให้มาเพื่อตอบคำถาม หากข้อมูลในบริบทไม่เกี่ยวข้องกับคำถาม ให้ตอบว่า "ฉันไม่สามารถให้ข้อมูลได้จากเอกสารที่มีอยู่"
@@ -64,7 +69,6 @@ def load_rag_chain():
     คำตอบ:
     """
     prompt = PromptTemplate.from_template(template)
-    # 4. สร้าง Chain
     chain = (
         {"context": retriever, "question": RunnablePassthrough()}
         | prompt
@@ -74,7 +78,6 @@ def load_rag_chain():
     return chain
 
 # --- ส่วนของหน้าเว็บ (Streamlit UI) ---
-
 st.title("🤖 ระบบถาม-ตอบข้อมูล HR")
 st.header("บริษัท AI สยาม จำกัด")
 

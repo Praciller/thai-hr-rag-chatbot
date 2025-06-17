@@ -12,3 +12,6 @@ pypdf
 
 # SQLite Fix (Fallback)
 pysqlite3-binary
+
+# Version lock to fix deployment errors
+protobuf==3.20.3

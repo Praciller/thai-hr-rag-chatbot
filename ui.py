@@ -14,9 +14,7 @@ import os
 from dotenv import load_dotenv
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-# vvv  นี่คือบรรทัดที่แก้ไข  vvv
 from langchain_chroma import Chroma
-# ^^^  นี่คือบรรทัดที่แก้ไข  ^^^
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
@@ -33,10 +31,10 @@ DB_PATH = "db"
 
 def setup_vector_database():
     """
-    ตรวจสอบว่ามี Vector DB อยู่หรือไม่ ถ้าไม่มีให้สร้างขึ้นมาใหม่
+    ตรวจสอบว่ามี Vector DB อยู่หรือไม่ ถ้าไม่มีให้สร้างขึ้นมาใหม่แบบเงียบๆ
     """
     if not os.path.exists(DB_PATH):
-        st.write("ยังไม่มีฐานข้อมูล Vector DB, กำลังสร้างขึ้นใหม่...")
+        # st.write("ยังไม่มีฐานข้อมูล Vector DB, กำลังสร้างขึ้นใหม่...") # <-- ซ่อนข้อความนี้
         loader = DirectoryLoader(DATA_PATH, glob="*.txt")
         documents = loader.load()
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
@@ -47,9 +45,9 @@ def setup_vector_database():
             embedding=embeddings,
             persist_directory=DB_PATH
         )
-        st.write("สร้างฐานข้อมูล Vector DB สำเร็จ!")
-    else:
-        st.write("กำลังโหลดฐานข้อมูล Vector DB ที่มีอยู่...")
+        # st.write("สร้างฐานข้อมูล Vector DB สำเร็จ!") # <-- ซ่อนข้อความนี้
+    # else:
+        # st.write("กำลังโหลดฐานข้อมูล Vector DB ที่มีอยู่...") # <-- ซ่อนข้อความนี้ด้วย
 
 @st.cache_resource
 def load_rag_chain():
@@ -82,7 +80,10 @@ st.title("🤖 ระบบถาม-ตอบข้อมูล HR")
 st.header("บริษัท AI สยาม จำกัด")
 
 try:
-    rag_chain = load_rag_chain()
+    # แสดง Spinner ขณะโหลด Chain ในครั้งแรก ซึ่งรวมการสร้าง DB ด้วย
+    with st.spinner("กำลังเตรียมระบบ..."):
+        rag_chain = load_rag_chain()
+
     user_question = st.text_input("ถามคำถามเกี่ยวกับนโยบายบริษัทที่นี่:")
     if user_question:
         with st.spinner("กำลังค้นหาข้อมูลและสร้างคำตอบ..."):
